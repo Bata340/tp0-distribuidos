@@ -10,6 +10,8 @@ services:
       - LOGGING_LEVEL=DEBUG
     networks:
       - testing_net
+    volumes:
+      - ./server/config:/config:ro
 
   client1:
     container_name: client1
@@ -22,6 +24,8 @@ services:
       - testing_net
     depends_on:
       - server
+    volumes:
+      - ./client/config:/build/config:ro
 
   client2:
     container_name: client2
@@ -34,6 +38,8 @@ services:
       - testing_net
     depends_on:
       - server
+    volumes:
+      - ./client/config:/build/config:ro
 
 networks:
   testing_net:
