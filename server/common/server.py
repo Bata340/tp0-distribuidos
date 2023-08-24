@@ -5,6 +5,7 @@ import logging
 class Server:
     def __init__(self, port, listen_backlog):
         # Initialize server socket
+        self.should_end_loop = False
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
@@ -20,8 +21,10 @@ class Server:
 
         # TODO: Modify this program to handle signal to graceful shutdown
         # the server
-        while True:
+        while not self.should_end_loop:
             client_sock = self.__accept_new_connection()
+            if not client_sock:
+                break
             self.__handle_client_connection(client_sock)
 
     def __handle_client_connection(self, client_sock):
@@ -56,3 +59,13 @@ class Server:
         c, addr = self._server_socket.accept()
         logging.info(f'action: accept_connections | result: success | ip: {addr[0]}')
         return c
+    
+
+    def end_server(self):
+        logging.info("[SERVER] Shutting down")
+        self.should_end_loop = True
+        # Close connection and send EOF to peers
+        self._server_socket.shutdown(socket.SHUT_RDWR)
+        # Deallocates socket
+        self._server_socket.close()
+        logging.info("[SERVER] Shutted Down Gracefully")
