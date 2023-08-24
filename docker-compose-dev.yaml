@@ -41,6 +41,18 @@ services:
     volumes:
       - ./client/config:/build/config:ro
 
+
+  netcat-test:
+    container_name: netcat-test
+    image: netcat-test:latest
+    entrypoint: /bin/sh /netcat.sh
+    networks:
+      - testing_net
+    profiles:
+      - test
+    depends_on:
+      - server
+
 networks:
   testing_net:
     ipam:
