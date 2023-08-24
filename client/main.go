@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"strings"
 	"time"
-
+	"os"
+	"os/signal"
+	"syscall"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
@@ -87,6 +89,15 @@ func PrintConfig(v *viper.Viper) {
     )
 }
 
+func endOnSigTerm (client *common.Client, signals chan os.Signal) {
+	//Read from channel, won't execute except SIGTERM is thrown.
+	<-signals
+	fmt.Println("\nReceived SIGTERM. shutting down client...")
+	client.End()
+	fmt.Println("\nEnding Main Instance... Graceful exit")
+	close(signals)
+}
+
 func main() {
 	v, err := InitConfig()
 	if err != nil {
@@ -108,5 +119,13 @@ func main() {
 	}
 
 	client := common.NewClient(clientConfig)
+
+	//Before starting client, handle sigterm with channel & signal notify
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
+	//Make a goroutine to handle the signal of SIGTERM
+	go endOnSigTerm(client, signals)
+
 	client.StartClientLoop()
+	close(signals)
 }

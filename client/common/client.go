@@ -97,3 +97,10 @@ loop:
 
 	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
 }
+
+
+func (c *Client) End() {
+	fmt.Println("\n[CLIENT] Shutting down Socket...")
+	c.conn.Close()
+	fmt.Println("\n[CLIENT] Socket closed, ending instance...")
+}
