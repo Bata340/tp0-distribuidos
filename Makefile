@@ -31,7 +31,7 @@ docker-compose-up: docker-image
 
 docker-compose-netcat-test:
 	docker build ./netcat-test -t "netcat-test:latest"
-	docker-compose -f docker-compose-dev.yaml run netcat-test -d --build
+	docker-compose -f docker-compose-dev.yaml run --rm netcat-test -d --build
 .PHONY: docker-compose-server-test
 
 docker-compose-down:
