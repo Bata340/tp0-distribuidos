@@ -1,9 +1,7 @@
 package common
 
 import (
-	"bufio"
 	"fmt"
-	"net"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -20,7 +18,7 @@ type ClientConfig struct {
 // Client Entity that encapsulates how
 type Client struct {
 	config ClientConfig
-	conn   net.Conn
+	socket *ClientSocket
 }
 
 // NewClient Initializes a new client receiving the configuration
@@ -36,23 +34,13 @@ func NewClient(config ClientConfig) *Client {
 // failure, error is printed in stdout/stderr and exit 1
 // is returned
 func (c *Client) createClientSocket() error {
-	conn, err := net.Dial("tcp", c.config.ServerAddress)
-	if err != nil {
-		log.Fatalf(
-	        "action: connect | result: fail | client_id: %v | error: %v",
-			c.config.ID,
-			err,
-		)
-	}
-	c.conn = conn
+	c.socket = NewClientSocket(c.config)
 	return nil
 }
 
 // StartClientLoop Send messages to the client until some time threshold is met
 func (c *Client) StartClientLoop() {
-	// autoincremental msgID to identify every message sent
 	msgID := 1
-
 loop:
 	// Send messages if the loopLapse threshold has not been surpassed
 	for timeout := time.After(c.config.LoopLapse); ; {
@@ -67,17 +55,9 @@ loop:
 
 		// Create the connection the server in every loop iteration. Send an
 		c.createClientSocket()
-
-		// TODO: Modify the send to avoid short-write
-		fmt.Fprintf(
-			c.conn,
-			"[CLIENT %v] Message N°%v\n",
-			c.config.ID,
-			msgID,
-		)
-		msg, err := bufio.NewReader(c.conn).ReadString('\n')
+		msg, err := c.sendBet("Nombre", "Apellido", 42676004, "2000-06-30", msgID)
+		c.socket.CloseSocket()
 		msgID++
-		c.conn.Close()
 
 		if err != nil {
 			log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v",
@@ -101,6 +81,22 @@ loop:
 
 func (c *Client) End() {
 	fmt.Println("\n[CLIENT] Shutting down Socket...")
-	c.conn.Close()
+	c.socket.CloseSocket()
 	fmt.Println("\n[CLIENT] Socket closed, ending instance...")
 }
+
+
+func (c *Client) sendBet(nombre string, apellido string, documento int, nacimiento string, numero int) ([]byte, error){
+	bytesToSend, err := BetToBytes(nombre, apellido, documento, nacimiento, numero)
+	if err != nil{
+		return nil, fmt.Errorf("%v", err)
+	}
+	fmt.Println("\n[CLIENT] Sending bet...")
+	c.socket.Send(bytesToSend, len(bytesToSend))
+	fmt.Println("\n[CLIENT] Bet Sent! %v", bytesToSend)
+	bytes, err := c.socket.Receive(len(bytesToSend))
+	if err != nil {
+		return nil, fmt.Errorf("%v", err)
+	}
+	return bytes, nil
+} 
