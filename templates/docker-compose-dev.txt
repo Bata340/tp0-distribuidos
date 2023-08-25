@@ -1,0 +1,48 @@
+version: '3.9'
+name: tp0
+services:
+  server:
+    container_name: server
+    image: server:latest
+    entrypoint: python3 /main.py
+    environment:
+      - PYTHONUNBUFFERED=1
+      - LOGGING_LEVEL=DEBUG
+    networks:
+      - testing_net
+    volumes:
+      - ./server/config:/config:ro
+{% for i in range(numClients) %}
+  client{{ i+1 }}:
+    container_name: client{{ i+1 }}
+    image: client:latest
+    entrypoint: /client
+    environment:
+      - CLI_ID={{i+1}}
+      - CLI_LOG_LEVEL=DEBUG
+    networks:
+      - testing_net
+    depends_on:
+      - server
+    volumes:
+      - ./client/config:/build/config:ro
+{% endfor %}
+
+  netcat-test:
+    container_name: netcat-test
+    image: netcat-test:latest
+    entrypoint: /bin/sh /netcat.sh
+    networks:
+      - testing_net
+    profiles:
+      - test
+    depends_on:
+      - server
+
+networks:
+  testing_net:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.25.125.0/24
+
