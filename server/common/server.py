@@ -1,6 +1,9 @@
 import socket
 import logging
+from struct import unpack
+from common.message_traducer import traduce_bet_from_bytes_to_object
 
+MAX_SIZE = 8192
 
 class Server:
     def __init__(self, port, listen_backlog):
@@ -19,8 +22,7 @@ class Server:
         finishes, servers starts to accept new connections again
         """
 
-        # TODO: Modify this program to handle signal to graceful shutdown
-        # the server
+        # Handles shutdown of SIGTERM Gracefully
         while not self.should_end_loop:
             client_sock = self.__accept_new_connection()
             if not client_sock:
@@ -35,12 +37,11 @@ class Server:
         client socket will also be closed
         """
         try:
-            # TODO: Modify the receive to avoid short-reads
-            msg = client_sock.recv(1024).rstrip().decode('utf-8')
+            msg_bytes = self.__receive(client_sock)
             addr = client_sock.getpeername()
-            logging.info(f'action: receive_message | result: success | ip: {addr[0]} | msg: {msg}')
-            # TODO: Modify the send to avoid short-writes
-            client_sock.send("{}\n".format(msg).encode('utf-8'))
+            bet_data = traduce_bet_from_bytes_to_object(msg_bytes)
+            logging.info(f'action: receive_message | result: success | ip: {addr[0]} | msg: {bet_data}')
+            self.__send(client_sock, msg_bytes)
         except OSError as e:
             logging.error("action: receive_message | result: fail | error: {e}")
         finally:
@@ -69,3 +70,38 @@ class Server:
         # Deallocates socket
         self._server_socket.close()
         logging.info("[SERVER] Shutted Down Gracefully")
+
+
+    def __send(self, client_sock, msg_bytes):
+        # Send that avoids short writes
+        size_sent = 0
+        while size_sent < len(msg_bytes):
+            iter_sent_size = client_sock.send(msg_bytes)
+            size_sent += iter_sent_size
+        return size_sent
+
+    
+    def __receive(self, client_sock):
+        '''
+        Receive that avoids short reads and receives message size from client
+        '''
+
+        # Receives size
+        size_recvd = 0
+        length_chunk = b""
+        while size_recvd < 4:
+            length_of_message_bytes = client_sock.recv(4)
+            size_recvd = len(length_of_message_bytes)
+            length_chunk += length_of_message_bytes
+        length_of_msg = int(unpack("!i", length_chunk)[0])
+        logging.debug(f"Length of message to receive is: {length_of_msg}. Now reading...")
+
+        # Receives a message which has the length that was previously received from client
+        size_recvd = 0
+        bytes_recvd = b""
+        while size_recvd < length_of_msg:
+            msg_bytes = client_sock.recv(min(length_of_msg - size_recvd, MAX_SIZE))
+            bytes_recvd += msg_bytes
+            size_recvd += len(msg_bytes)
+        logging.debug(f"Message received correctly.")
+        return bytes_recvd

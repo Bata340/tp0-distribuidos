@@ -93,7 +93,7 @@ func (c *Client) sendBet(nombre string, apellido string, documento int, nacimien
 	}
 	fmt.Println("\n[CLIENT] Sending bet...")
 	c.socket.Send(bytesToSend, len(bytesToSend))
-	fmt.Println("\n[CLIENT] Bet Sent! %v", bytesToSend)
+	fmt.Println("\n[CLIENT] Bet Sent! ", "Name: ", nombre, "; Surname: ", apellido, "; Document: ", documento, "; Born in: ", nacimiento, "; Number: ", numero)
 	bytes, err := c.socket.Receive(len(bytesToSend))
 	if err != nil {
 		return nil, fmt.Errorf("%v", err)

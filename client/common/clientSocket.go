@@ -3,6 +3,7 @@ package common
 import (
 	"fmt"
 	"net"
+	"encoding/binary"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -42,6 +43,16 @@ func (socket *ClientSocket) Send(bytes_to_send []byte, length_of_message int) er
 	// Sends specific length of bytes from socket.
 	// And avoids short writes.
 	accum_sent := 0
+	sizeOfMessage := make([]byte, 4)
+	binary.BigEndian.PutUint32(sizeOfMessage, uint32(len(bytes_to_send)))
+	for accum_sent < 4 {
+		size_sent, send_err := socket.conn.Write(sizeOfMessage)
+		if send_err != nil {
+			return fmt.Errorf("%v", send_err)
+		}
+		accum_sent += size_sent
+	}
+	accum_sent = 0
 	for accum_sent < length_of_message {
 		size_sent, send_err := socket.conn.Write(bytes_to_send)
 		if send_err != nil {
