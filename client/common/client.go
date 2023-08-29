@@ -74,6 +74,9 @@ loop:
 		// Wait a time between sending one message and the next one
 		time.Sleep(c.config.LoopPeriod)
 	}
+	c.createClientSocket()
+	c.sendEnd()
+	c.socket.CloseSocket()
 
 	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
 }
@@ -87,7 +90,7 @@ func (c *Client) End() {
 
 
 func (c *Client) sendBet(nombre string, apellido string, documento int, nacimiento string, numero int) ([]byte, error){
-	bytesToSend, err := BetToBytes(nombre, apellido, documento, nacimiento, numero)
+	bytesToSend, err := BetToBytes(nombre, apellido, documento, nacimiento, numero, c.config.ID)
 	if err != nil{
 		return nil, fmt.Errorf("%v", err)
 	}
@@ -100,3 +103,15 @@ func (c *Client) sendBet(nombre string, apellido string, documento int, nacimien
 	}
 	return bytes, nil
 } 
+
+func (c *Client) sendEnd() error{
+	bytesToSend := []byte{byte('E')}
+	fmt.Println("\n[CLIENT] Sending END...")
+	c.socket.Send(bytesToSend, len(bytesToSend))
+	fmt.Println("Sent END Succesfully...");
+	_, err := c.socket.Receive(len(bytesToSend))
+	if err != nil {
+		return fmt.Errorf("%v", err)
+	}
+	return nil
+}

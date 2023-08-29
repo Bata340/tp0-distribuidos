@@ -2,12 +2,14 @@ import socket
 import logging
 from struct import unpack
 from common.message_traducer import traduce_bet_from_bytes_to_object
+from common.bets_handler import BetsHandler
 
 MAX_SIZE = 8192
 
 class Server:
     def __init__(self, port, listen_backlog):
         # Initialize server socket
+        self.bets_handler = BetsHandler()
         self.should_end_loop = False
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
@@ -39,7 +41,7 @@ class Server:
         try:
             msg_bytes = self.__receive(client_sock)
             addr = client_sock.getpeername()
-            bet_data = traduce_bet_from_bytes_to_object(msg_bytes)
+            bet_data = self.bets_handler.handleMessasge(msg_bytes)
             logging.info(f'action: receive_message | result: success | ip: {addr[0]} | msg: {bet_data}')
             self.__send(client_sock, msg_bytes)
         except OSError as e:
