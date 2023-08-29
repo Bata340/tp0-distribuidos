@@ -3,7 +3,8 @@ package common
 import (
 	"fmt"
 	"time"
-
+	"os"
+	"strconv"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -55,7 +56,15 @@ loop:
 
 		// Create the connection the server in every loop iteration. Send an
 		c.createClientSocket()
-		msg, err := c.sendBet("Nombre", "Apellido", 42676004, "2000-06-30", msgID)
+		doc, _ := strconv.Atoi(os.Getenv("DOCUMENTO"))
+		num, _ := strconv.Atoi(os.Getenv("NUMERO"))
+		msg, err := c.sendBet(
+			os.Getenv("NOMBRE"), 
+			os.Getenv("APELLIDO"), 
+			doc,
+			os.Getenv("NACIMIENTO"),
+			num,
+		)
 		c.socket.CloseSocket()
 		msgID++
 
