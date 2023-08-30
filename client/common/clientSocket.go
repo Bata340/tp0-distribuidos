@@ -18,7 +18,7 @@ func NewClientSocket(config ClientConfig) *ClientSocket {
 	}
 	err := socket.initConnection()
 	if err != nil{
-		fmt.Printf("%v", err)
+		log.Fatalf("action: creating socket | result: fail | error: %v", err)
 	}
 	return socket
 }
@@ -72,14 +72,24 @@ func (socket *ClientSocket) Receive(length int) ([]byte, error) {
 	for accum < length {
 		size, err := socket.conn.Read(buffer[accum:])
 		if err != nil{
-			return buffer, fmt.Errorf("%v", err)
+			log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v",
+				socket.sockConf.ID,
+				err,
+			)
+			return buffer, fmt.Errorf("Error: %v", err)
 		}
 		accum += size
 	}
+	log.Infof("action: receive_message | result: success | client_id: %v | msg: %v",
+		socket.sockConf.ID,
+		buffer,
+	)
 	return buffer, nil
 } 
 
 
 func (socket *ClientSocket) CloseSocket() {
+	log.Infof("[SOCKET] Closing...")
 	socket.conn.Close()
+	log.Infof("[SOCKET] Closed Correctly.")
 }

@@ -31,96 +31,79 @@ func NewClient(config ClientConfig) *Client {
 	return client
 }
 
-// CreateClientSocket Initializes client socket. In case of
-// failure, error is printed in stdout/stderr and exit 1
-// is returned
+
 func (c *Client) createClientSocket() error {
 	c.socket = NewClientSocket(c.config)
 	return nil
 }
 
-// StartClientLoop Send messages to the client until some time threshold is met
+
 func (c *Client) StartClientLoop() {
-	msgID := 1
-loop:
-	// Send messages if the loopLapse threshold has not been surpassed
-	for timeout := time.After(c.config.LoopLapse); ; {
-		select {
-		case <-timeout:
-	        log.Infof("action: timeout_detected | result: success | client_id: %v",
-                c.config.ID,
-            )
-			break loop
-		default:
-		}
-
-		// Create the connection the server in every loop iteration. Send an
-		c.createClientSocket()
-		doc, _ := strconv.Atoi(os.Getenv("DOCUMENTO"))
-		num, _ := strconv.Atoi(os.Getenv("NUMERO"))
-		msg, err := c.sendBet(
-			os.Getenv("NOMBRE"), 
-			os.Getenv("APELLIDO"), 
-			doc,
-			os.Getenv("NACIMIENTO"),
-			num,
-		)
-		c.socket.CloseSocket()
-		msgID++
-
-		if err != nil {
-			log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v",
-                c.config.ID,
-				err,
-			)
-			return
-		}
-		log.Infof("action: receive_message | result: success | client_id: %v | msg: %v",
-            c.config.ID,
-            msg,
-        )
-
-		// Wait a time between sending one message and the next one
-		time.Sleep(c.config.LoopPeriod)
+	doc, errDocAtoi := strconv.Atoi(os.Getenv("DOCUMENTO"))
+	if errDocAtoi != nil{
+		log.Errorf("Error al tomar el documento desde las variables de entorno: %v", errDocAtoi)
+		return
 	}
-	c.createClientSocket()
-	c.sendEnd()
-	c.socket.CloseSocket()
+	num, errNum := strconv.Atoi(os.Getenv("NUMERO"))
+	if errNum != nil{
+		log.Errorf("Error al tomar el número desde las variables de entorno: %v", errNum)
+		return
+	}
+
+	err := c.sendBet(
+		os.Getenv("NOMBRE"), 
+		os.Getenv("APELLIDO"), 
+		doc,
+		os.Getenv("NACIMIENTO"),
+		num,
+	)
+	if err != nil{
+		log.Errorf("Error al enviar la apuesta: %v", err)
+		return
+	}
+	errEnd := c.sendEnd()
+	if errEnd != nil{
+		log.Errorf("Error al enviar el mensaje de END: %v", err)
+	}
 
 	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
 }
 
 
 func (c *Client) End() {
-	fmt.Println("\n[CLIENT] Shutting down Socket...")
+	log.Infof("[CLIENT] Shutting down Socket...")
 	c.socket.CloseSocket()
-	fmt.Println("\n[CLIENT] Socket closed, ending instance...")
+	log.Infof("[CLIENT] Socket closed, ending instance...")
 }
 
 
-func (c *Client) sendBet(nombre string, apellido string, documento int, nacimiento string, numero int) ([]byte, error){
+func (c *Client) sendBet(nombre string, apellido string, documento int, nacimiento string, numero int) error {
 	bytesToSend, err := BetToBytes(nombre, apellido, documento, nacimiento, numero, c.config.ID)
+	c.createClientSocket()
 	if err != nil{
-		return nil, fmt.Errorf("%v", err)
+		return fmt.Errorf("%v", err)
 	}
-	fmt.Println("\n[CLIENT] Sending bet...")
+	log.Infof("\n[CLIENT] Sending bet...")
 	c.socket.Send(bytesToSend, len(bytesToSend))
-	fmt.Println("\n[CLIENT] Bet Sent! ", "Name: ", nombre, "; Surname: ", apellido, "; Document: ", documento, "; Born in: ", nacimiento, "; Number: ", numero)
-	bytes, err := c.socket.Receive(len(bytesToSend))
-	if err != nil {
-		return nil, fmt.Errorf("%v", err)
+	_, err_recv := c.socket.Receive(len(bytesToSend))
+	c.socket.CloseSocket()
+	if err_recv != nil {
+		return fmt.Errorf("Error sending bet: %v", err_recv)
 	}
-	return bytes, nil
+	log.Infof("action: apuesta_enviada | result: success | dni: %v | numero: %v", documento, numero)
+	return nil
 } 
 
 func (c *Client) sendEnd() error{
 	bytesToSend := []byte{byte('E')}
-	fmt.Println("\n[CLIENT] Sending END...")
+	c.createClientSocket()
+	log.Infof("\n[CLIENT] Sending END...")
 	c.socket.Send(bytesToSend, len(bytesToSend))
-	fmt.Println("Sent END Succesfully...");
+	log.Infof("Sent END Succesfully...")
 	_, err := c.socket.Receive(len(bytesToSend))
+	c.socket.CloseSocket()
 	if err != nil {
-		return fmt.Errorf("%v", err)
+		return fmt.Errorf("Error sending END: %v", err)
 	}
 	return nil
 }
