@@ -1,5 +1,6 @@
 import socket
 import logging
+import errno
 
 
 class Server:
@@ -56,9 +57,17 @@ class Server:
 
         # Connection arrived
         logging.info('action: accept_connections | result: in_progress')
-        c, addr = self._server_socket.accept()
-        logging.info(f'action: accept_connections | result: success | ip: {addr[0]}')
-        return c
+        try:
+            c, addr = self._server_socket.accept()
+            logging.info(f'action: accept_connections | result: success | ip: {addr[0]}')
+            return c
+        except OSError as osError:
+            if osError.errno == errno.EBADF:
+                logging.info("[ServerSocket] Socket closed. Won't be accepting any more incoming connections.")
+                return None
+            else:
+                logging.error(f"[ServerSocket] An error has ocurred when trying to accept: ${osError}")
+                return None
     
 
     def end_server(self):
