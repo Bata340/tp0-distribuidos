@@ -20,7 +20,7 @@ class ServerSocket:
         '''
         size_sent = 0
         while size_sent < len(msg_bytes):
-            iter_sent_size = client_socket.send(msg_bytes)
+            iter_sent_size = client_socket.send(msg_bytes[size_sent:])
             size_sent += iter_sent_size
         return size_sent
 

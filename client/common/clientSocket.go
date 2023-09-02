@@ -46,7 +46,7 @@ func (socket *ClientSocket) Send(bytes_to_send []byte, length_of_message int) er
 	sizeOfMessage := make([]byte, 4)
 	binary.BigEndian.PutUint32(sizeOfMessage, uint32(len(bytes_to_send)))
 	for accum_sent < 4 {
-		size_sent, send_err := socket.conn.Write(sizeOfMessage)
+		size_sent, send_err := socket.conn.Write(sizeOfMessage[accum_sent:])
 		if send_err != nil {
 			return fmt.Errorf("%v", send_err)
 		}
@@ -54,7 +54,7 @@ func (socket *ClientSocket) Send(bytes_to_send []byte, length_of_message int) er
 	}
 	accum_sent = 0
 	for accum_sent < length_of_message {
-		size_sent, send_err := socket.conn.Write(bytes_to_send)
+		size_sent, send_err := socket.conn.Write(bytes_to_send[accum_sent:])
 		if send_err != nil {
 			return fmt.Errorf("%v", send_err)
 		}
