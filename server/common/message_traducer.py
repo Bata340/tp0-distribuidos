@@ -6,42 +6,49 @@ SIZE_AGENCY = 1
 SIZE_NACIMIENTO = 10
 SIZE_NUMERO = 4
 
+from common.utils import Bet
+
 
 def traduce_bet_from_bytes_to_object(bytes_recvd):
     agency_id = bytes_recvd[0:SIZE_AGENCY].decode('utf-8')
-    name_len = int(unpack('!i', bytes_recvd[SIZE_AGENCY:SIZE_AGENCY+SIZE_NUMERO])[0])
-    name = bytes_recvd[
-        SIZE_AGENCY+SIZE_NUMERO:
-        SIZE_AGENCY+name_len+SIZE_NUMERO
-    ].decode('utf-8')
-    surname_len = int(unpack('!i', bytes_recvd[
-        SIZE_AGENCY+SIZE_NUMERO+name_len:
-        SIZE_AGENCY+SIZE_NUMERO*2+name_len
-    ])[0])
-    surname = bytes_recvd[
-        SIZE_AGENCY+SIZE_NUMERO*2+name_len:
-        SIZE_AGENCY+SIZE_NUMERO*2+name_len+surname_len
-    ].decode('utf-8')
-    document = int(unpack('!i', bytes_recvd[
-        SIZE_AGENCY+SIZE_NUMERO*2+name_len+surname_len:
-        SIZE_AGENCY+SIZE_NUMERO*3+name_len+surname_len
-    ])[0])
-    birth_day = bytes_recvd[
-        SIZE_AGENCY+SIZE_NUMERO*3+name_len+surname_len:
-        SIZE_AGENCY+SIZE_NUMERO*3+name_len+surname_len+SIZE_NACIMIENTO
-    ].decode('utf-8')
-    number = int(unpack('!i', bytes_recvd[
-        SIZE_AGENCY+SIZE_NUMERO*3+name_len+surname_len+SIZE_NACIMIENTO:
-        SIZE_AGENCY+SIZE_NUMERO*4+name_len+surname_len+SIZE_NACIMIENTO
-    ])[0])
-    return {
-        "agency": agency_id,
-        "name": name,
-        "surname": surname,
-        "document": document,
-        "birth_day": birth_day,
-        "number": number
-    }
+    betsArray = []
+    betOffset = 0
+    while betOffset + SIZE_AGENCY < len(bytes_recvd):
+        name_len = int(unpack('!i', bytes_recvd[betOffset+SIZE_AGENCY:betOffset+SIZE_AGENCY+SIZE_NUMERO])[0])
+        name = bytes_recvd[
+            betOffset+SIZE_AGENCY+SIZE_NUMERO:
+            betOffset+SIZE_AGENCY+name_len+SIZE_NUMERO
+        ].decode('utf-8')
+        surname_len = int(unpack('!i', bytes_recvd[
+            betOffset+SIZE_AGENCY+SIZE_NUMERO+name_len:
+            betOffset+SIZE_AGENCY+SIZE_NUMERO*2+name_len
+        ])[0])
+        surname = bytes_recvd[
+            betOffset+SIZE_AGENCY+SIZE_NUMERO*2+name_len:
+            betOffset+SIZE_AGENCY+SIZE_NUMERO*2+name_len+surname_len
+        ].decode('utf-8')
+        document = int(unpack('!i', bytes_recvd[
+            betOffset+SIZE_AGENCY+SIZE_NUMERO*2+name_len+surname_len:
+            betOffset+SIZE_AGENCY+SIZE_NUMERO*3+name_len+surname_len
+        ])[0])
+        birth_day = bytes_recvd[
+            betOffset+SIZE_AGENCY+SIZE_NUMERO*3+name_len+surname_len:
+            betOffset+SIZE_AGENCY+SIZE_NUMERO*3+name_len+surname_len+SIZE_NACIMIENTO
+        ].decode('utf-8')
+        number = int(unpack('!i', bytes_recvd[
+            betOffset+SIZE_AGENCY+SIZE_NUMERO*3+name_len+surname_len+SIZE_NACIMIENTO:
+            betOffset+SIZE_AGENCY+SIZE_NUMERO*4+name_len+surname_len+SIZE_NACIMIENTO
+        ])[0])
+        betOffset += SIZE_NUMERO*4+name_len+surname_len+SIZE_NACIMIENTO
+        betsArray.append(Bet(
+            agency_id,
+            name,
+            surname,
+            str(document),
+            birth_day,
+            str(number)
+        ))
+    return betsArray
 
 
 TYPES_OF_MESSAGE = {
@@ -67,3 +74,10 @@ def traduce_message(bytes_recvd):
         "type": type_of_message["type"],
         "message": type_of_message["traducer"](bytes_recvd[SIZE_TYPE_OF_MESSAGE:])
     }
+
+
+def winner_to_bytes(dni, number):
+    # Packs winner as DNI and number in an 8 bytes message (Two ints)
+    # TODO: Usar la función de utils para generar el array y posteriormente empaquetar cada item como bytes.
+    # Para ejercicio 7.
+    pass

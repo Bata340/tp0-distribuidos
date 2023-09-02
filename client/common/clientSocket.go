@@ -46,7 +46,7 @@ func (socket *ClientSocket) Send(bytes_to_send []byte, length_of_message int) er
 	sizeOfMessage := make([]byte, 4)
 	binary.BigEndian.PutUint32(sizeOfMessage, uint32(len(bytes_to_send)))
 	for accum_sent < 4 {
-		size_sent, send_err := socket.conn.Write(sizeOfMessage)
+		size_sent, send_err := socket.conn.Write(sizeOfMessage[accum_sent:])
 		if send_err != nil {
 			return fmt.Errorf("%v", send_err)
 		}
@@ -54,7 +54,7 @@ func (socket *ClientSocket) Send(bytes_to_send []byte, length_of_message int) er
 	}
 	accum_sent = 0
 	for accum_sent < length_of_message {
-		size_sent, send_err := socket.conn.Write(bytes_to_send)
+		size_sent, send_err := socket.conn.Write(bytes_to_send[accum_sent:])
 		if send_err != nil {
 			return fmt.Errorf("%v", send_err)
 		}
@@ -64,12 +64,27 @@ func (socket *ClientSocket) Send(bytes_to_send []byte, length_of_message int) er
 }
 
 
-func (socket *ClientSocket) Receive(length int) ([]byte, error) {
-	// Receives specific length of bytes from socket.
-	// And avoids short reads.
+func (socket *ClientSocket) Receive() ([]byte, error) {
+	// Receives size of message to receive
+	// Afterwards receives the message
+	// It does also avoid short reads
 	accum := 0
-	buffer := make([]byte, length)
-	for accum < length {
+	buffer := make([]byte, 4)
+	for accum < 4{
+		size, err := socket.conn.Read(buffer[accum:])
+		if err != nil{
+			log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v",
+				socket.sockConf.ID,
+				err,
+			)
+			return buffer, fmt.Errorf("Error: %v", err)
+		}
+		accum += size
+	}
+	accum = 0
+	sizeOfMessage := int(binary.BigEndian.Uint32(buffer))
+	buffer = make([]byte, sizeOfMessage)
+	for accum < sizeOfMessage {
 		size, err := socket.conn.Read(buffer[accum:])
 		if err != nil{
 			log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v",

@@ -11,8 +11,12 @@ const (
 	SIZE_TYPE_OF_MSG = 1
 )
 
-func BetToBytes(nombre string, apellido string, documento int, nacimiento string, numero int, agencyID string) ([]byte, error){
-	byteTypeOfMessage := []byte{byte('B')}
+
+func GetBatchIdentifier(agencyID string) [] byte {
+	return []byte{byte('B'), byte(agencyID[0])}
+}
+
+func BetToBytes(nombre string, apellido string, documento int, nacimiento string, numero int) ([]byte, error){
 	bytesNombre := []byte(nombre)
 	bytesApellido := []byte(apellido)
 	bytesDoc := make([]byte,SIZE_NUMERO)
@@ -27,12 +31,9 @@ func BetToBytes(nombre string, apellido string, documento int, nacimiento string
 	binary.BigEndian.PutUint32(sizeOfName, uint32(len(bytesNombre)))
 	sizeOfSurname := make([]byte,SIZE_NUMERO)
 	binary.BigEndian.PutUint32(sizeOfSurname, uint32(len(bytesApellido)))
-	bytesAgencyNumber := byte(agencyID[0])
 	bytesNombre = append(sizeOfName, bytesNombre...)
 	bytesApellido = append(sizeOfSurname, bytesApellido...)
-	finalMessage := append(byteTypeOfMessage, bytesAgencyNumber)
-	finalMessage = append(finalMessage, bytesNombre...)
-	finalMessage = append(finalMessage, bytesApellido...)
+	finalMessage := append(bytesNombre, bytesApellido...)
 	finalMessage = append(finalMessage, bytesDoc...)
 	finalMessage = append(finalMessage, bytesNacimiento...)
 	finalMessage = append(finalMessage, bytesNumero...)

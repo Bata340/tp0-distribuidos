@@ -12,21 +12,25 @@ class BetsHandler:
     def handleMessasge(self, message):
         traducedMessage = traduce_message(message)
         if traducedMessage["type"] == "BET":
-            return self.__handleBet(traducedMessage["message"])
+            return {
+                "type": "BET",
+                "message": self.__handleBatch(traducedMessage["message"])
+            }
         elif traducedMessage["type"] == "END_BETS":
-            return self.__handleEnd()
+            return {
+                "type": "END_BETS",
+                "message": self.__handleEnd()
+            }
+        
+
+    def get_winners(self):
+        pass
 
 
-    def __handleBet(self, bet):
-        store_bets([Bet(
-            bet["agency"],
-            bet["name"],
-            bet["surname"],
-            str(bet["document"]),
-            bet["birth_day"],
-            str(bet["number"])
-        )])
-        logging.info(f'action: apuesta_almacenada | result: success | dni: ${bet["document"]} | numero: ${bet["number"]}')
+    def __handleBatch(self, batch):
+        store_bets(batch)
+        for bet in batch:
+            logging.info(f'action: apuesta_almacenada | result: success | dni: ${bet.document} | numero: ${bet.number}')
         return bet
     
 
