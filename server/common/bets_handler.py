@@ -26,7 +26,7 @@ class BetsHandler:
             bet["birth_day"],
             str(bet["number"])
         )])
-        logging.info(f'apuesta_almacenada | result: success | dni: ${bet["document"]} | numero: ${bet["number"]}')
+        logging.info(f'action: apuesta_almacenada | result: success | dni: ${bet["document"]} | numero: ${bet["number"]}')
         return bet
     
 
