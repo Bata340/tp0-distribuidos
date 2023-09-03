@@ -92,10 +92,9 @@ func PrintConfig(v *viper.Viper) {
 func endOnSigTerm (client *common.Client, signals chan os.Signal) {
 	//Read from channel, won't execute except SIGTERM is thrown.
 	<-signals
-	fmt.Println("\nReceived SIGTERM. shutting down client...")
+	log.Infof("Received SIGTERM. shutting down client...")
 	client.End()
-	fmt.Println("\nEnding Main Instance... Graceful exit")
-	close(signals)
+	log.Infof("Ending Main Instance... Graceful exit")
 }
 
 func main() {
@@ -122,10 +121,10 @@ func main() {
 
 	//Before starting client, handle sigterm with channel & signal notify
 	signals := make(chan os.Signal, 1)
+	defer close(signals)
 	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
 	//Make a goroutine to handle the signal of SIGTERM
 	go endOnSigTerm(client, signals)
 
 	client.StartClientLoop()
-	close(signals)
 }

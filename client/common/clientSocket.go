@@ -64,12 +64,27 @@ func (socket *ClientSocket) Send(bytes_to_send []byte, length_of_message int) er
 }
 
 
-func (socket *ClientSocket) Receive(length int) ([]byte, error) {
-	// Receives specific length of bytes from socket.
-	// And avoids short reads.
+func (socket *ClientSocket) Receive() ([]byte, error) {
+	// Receives size of message to receive
+	// Afterwards receives the message
+	// It does also avoid short reads
 	accum := 0
-	buffer := make([]byte, length)
-	for accum < length {
+	buffer := make([]byte, 4)
+	for accum < 4{
+		size, err := socket.conn.Read(buffer[accum:])
+		if err != nil{
+			log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v",
+				socket.sockConf.ID,
+				err,
+			)
+			return buffer, fmt.Errorf("Error: %v", err)
+		}
+		accum += size
+	}
+	accum = 0
+	sizeOfMessage := int(binary.BigEndian.Uint32(buffer))
+	buffer = make([]byte, sizeOfMessage)
+	for accum < sizeOfMessage {
 		size, err := socket.conn.Read(buffer[accum:])
 		if err != nil{
 			log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v",

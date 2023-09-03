@@ -17,9 +17,11 @@ RUN CGO_ENABLED=0 GOOS=linux go build -mod vendor -o bin/client github.com/7574-
 FROM busybox:latest
 COPY --from=builder /build/bin/client /client
 COPY ./client/config/config.yaml /config/config.yaml
+COPY ../.data /data
 ENV NOMBRE="Nombre Prueba"
 ENV APELLIDO="Apellido Prueba"
 ENV DOCUMENTO="12345678"
 ENV NACIMIENTO="2000-06-30"
 ENV NUMERO="7574"
+ENV BETS_PER_BATCH="20"
 ENTRYPOINT ["/bin/sh"]

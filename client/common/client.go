@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 	"os"
+	"io"
+	"encoding/csv"
 	"strconv"
 	log "github.com/sirupsen/logrus"
 )
@@ -20,6 +22,7 @@ type ClientConfig struct {
 type Client struct {
 	config ClientConfig
 	socket *ClientSocket
+	end bool
 }
 
 // NewClient Initializes a new client receiving the configuration
@@ -27,6 +30,7 @@ type Client struct {
 func NewClient(config ClientConfig) *Client {
 	client := &Client{
 		config: config,
+		end: false,
 	}
 	return client
 }
@@ -39,33 +43,20 @@ func (c *Client) createClientSocket() error {
 
 
 func (c *Client) StartClientLoop() {
-	doc, errDocAtoi := strconv.Atoi(os.Getenv("DOCUMENTO"))
-	if errDocAtoi != nil{
-		log.Errorf("Error al tomar el documento desde las variables de entorno: %v", errDocAtoi)
+	betsPerBatch, err := strconv.Atoi(os.Getenv("BETS_PER_BATCH"))
+	if err != nil {
+		log.Errorf("Error al obtener la cantidad de apuestas por batch: %v", err)
 		return
 	}
-	num, errNum := strconv.Atoi(os.Getenv("NUMERO"))
-	if errNum != nil{
-		log.Errorf("Error al tomar el número desde las variables de entorno: %v", errNum)
-		return
-	}
-
-	err := c.sendBet(
-		os.Getenv("NOMBRE"), 
-		os.Getenv("APELLIDO"), 
-		doc,
-		os.Getenv("NACIMIENTO"),
-		num,
-	)
+	err = c.sendBetsAsBatch(betsPerBatch)
 	if err != nil{
-		log.Errorf("Error al enviar la apuesta: %v", err)
+		log.Errorf("Error al enviar las apuestas: %v", err)
 		return
 	}
 	errEnd := c.sendEnd()
 	if errEnd != nil{
 		log.Errorf("Error al enviar el mensaje de END: %v", err)
 	}
-
 	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
 }
 
@@ -73,34 +64,79 @@ func (c *Client) StartClientLoop() {
 func (c *Client) End() {
 	log.Infof("[CLIENT] Shutting down Socket...")
 	c.socket.CloseSocket()
+	c.end = true
 	log.Infof("[CLIENT] Socket closed, ending instance...")
 }
 
 
-func (c *Client) sendBet(nombre string, apellido string, documento int, nacimiento string, numero int) error {
-	bytesToSend, err := BetToBytes(nombre, apellido, documento, nacimiento, numero, c.config.ID)
-	c.createClientSocket()
-	if err != nil{
-		return fmt.Errorf("%v", err)
+func (c *Client) sendBetsAsBatch(sizePerBatch int) error {
+	bytesBatchIdentifier := GetBatchIdentifier(c.config.ID)
+	file, err := os.Open("data/agency-"+c.config.ID+".csv")
+	if err != nil {
+		log.Errorf("Error opening the agency csv file: %v", err)
+		return err
 	}
-	log.Infof("\n[CLIENT] Sending bet...")
-	c.socket.Send(bytesToSend, len(bytesToSend))
-	_, err_recv := c.socket.Receive(len(bytesToSend))
-	c.socket.CloseSocket()
-	if err_recv != nil {
-		return fmt.Errorf("Error sending bet: %v", err_recv)
+	defer file.Close()
+	reader := csv.NewReader(file)
+	filesInCurrentBatch := 0
+	currBatch := bytesBatchIdentifier
+	for !c.end{
+		line, err := reader.Read()
+		if err != nil {
+			if err == io.EOF {
+				if len(currBatch) > 2 {
+					log.Infof("Length of current batch: %v", len(currBatch))
+					c.createClientSocket()
+					errSock := c.socket.Send(currBatch, len(currBatch))
+					if errSock != nil{
+						return errSock
+					}
+					c.socket.CloseSocket()
+				}
+				break
+			}
+			log.Errorf("Error reading CSV line: %v", err)
+			return err
+		}
+		dni, errDni := strconv.Atoi(line[2])
+		if errDni != nil{
+			log.Errorf("Error reading DNI from line: %v", errDni)
+			return errDni
+		}
+		betNum, errNum := strconv.Atoi(line[4])
+		if errNum != nil{
+			log.Errorf("Error reading Bet Number from line: %v", errNum)
+			return errNum
+		}
+		bytesToSend, err := BetToBytes(line[0], line[1], dni, line[3], betNum)
+		if err != nil{
+			log.Errorf("Error transforming bet to bytes: %v", err)
+			return err
+		}
+		currBatch = append(currBatch, bytesToSend...)
+		filesInCurrentBatch += 1
+		if filesInCurrentBatch == sizePerBatch {
+			log.Infof("Length of current batch: %v", len(currBatch))
+			c.createClientSocket()
+			errSock := c.socket.Send(currBatch, len(currBatch))
+			if errSock != nil{
+				return errSock
+			}
+			c.socket.CloseSocket()
+			currBatch = bytesBatchIdentifier
+			filesInCurrentBatch = 0
+		}
 	}
-	log.Infof("action: apuesta_enviada | result: success | dni: %v | numero: %v", documento, numero)
 	return nil
-} 
+}
 
 func (c *Client) sendEnd() error{
 	bytesToSend := []byte{byte('E')}
 	c.createClientSocket()
-	log.Infof("\n[CLIENT] Sending END...")
+	log.Infof("[CLIENT] Sending END...")
 	c.socket.Send(bytesToSend, len(bytesToSend))
-	log.Infof("Sent END Succesfully...")
-	_, err := c.socket.Receive(len(bytesToSend))
+	log.Infof("[CLIENT] Sent END Succesfully...")
+	_, err := c.socket.Receive()
 	c.socket.CloseSocket()
 	if err != nil {
 		return fmt.Errorf("Error sending END: %v", err)

@@ -1,5 +1,5 @@
 import logging
-from struct import unpack
+from struct import unpack, pack
 import socket
 import errno
 
@@ -16,8 +16,13 @@ class ServerSocket:
 
     def send(self, client_socket, msg_bytes):
         '''
-        Send that avoids short writes
+        Send that avoids short writes and also sends the size of message before sending it
         '''
+        size_sent = 0
+        size_of_msg = pack("!i", len(msg_bytes))
+        while size_sent < 4:
+            iter_sent_size = client_socket.send(size_of_msg[size_sent:])
+            size_sent += iter_sent_size
         size_sent = 0
         while size_sent < len(msg_bytes):
             iter_sent_size = client_socket.send(msg_bytes[size_sent:])
@@ -33,7 +38,7 @@ class ServerSocket:
         size_recvd = 0
         length_chunk = b""
         while size_recvd < 4:
-            length_of_message_bytes = client_sock.recv(4)
+            length_of_message_bytes = client_sock.recv(4-size_recvd)
             size_recvd = len(length_of_message_bytes)
             length_chunk += length_of_message_bytes
         length_of_msg = int(unpack("!i", length_chunk)[0])

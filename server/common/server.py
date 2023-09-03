@@ -38,9 +38,10 @@ class Server:
             msg_bytes = self.serverSocket.receive(client_sock)
             addr = client_sock.getpeername()
             traducedMessage = self.bets_handler.handleMessasge(msg_bytes)
-            logging.info(f'action: receive_message | result: success | ip: {addr[0]} | msg: {traducedMessage}')
-            # Keeping the echo server behaviour in order to make sure in the client that the request was correctly handled.
-            self.serverSocket.send(client_sock, msg_bytes)
+            if traducedMessage["type"] == "END_BETS":
+                #TODO: Ejercicio 7 - Agregar el llamado para obtener los ganadores
+                self.serverSocket.send(client_sock, msg_bytes)
+            logging.info(f'action: receive_message | result: success | ip: {addr[0]} | msg: {[traducedMessage["message"]]}')
         except OSError as e:
             logging.error("action: receive_message | result: fail | error: {e}")
         finally:
