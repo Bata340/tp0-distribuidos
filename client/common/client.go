@@ -22,6 +22,7 @@ type ClientConfig struct {
 type Client struct {
 	config ClientConfig
 	socket *ClientSocket
+	end bool
 }
 
 // NewClient Initializes a new client receiving the configuration
@@ -29,6 +30,7 @@ type Client struct {
 func NewClient(config ClientConfig) *Client {
 	client := &Client{
 		config: config,
+		end: false,
 	}
 	return client
 }
@@ -62,12 +64,12 @@ func (c *Client) StartClientLoop() {
 func (c *Client) End() {
 	log.Infof("[CLIENT] Shutting down Socket...")
 	c.socket.CloseSocket()
+	c.end = true
 	log.Infof("[CLIENT] Socket closed, ending instance...")
 }
 
 
 func (c *Client) sendBetsAsBatch(sizePerBatch int) error {
-	idBatch := 0
 	bytesBatchIdentifier := GetBatchIdentifier(c.config.ID)
 	file, err := os.Open("data/agency-"+c.config.ID+".csv")
 	if err != nil {
@@ -78,13 +80,17 @@ func (c *Client) sendBetsAsBatch(sizePerBatch int) error {
 	reader := csv.NewReader(file)
 	filesInCurrentBatch := 0
 	currBatch := bytesBatchIdentifier
-	for {
+	for !c.end{
 		line, err := reader.Read()
 		if err != nil {
 			if err == io.EOF {
 				if len(currBatch) > 2 {
+					log.Infof("Length of current batch: %v", len(currBatch))
 					c.createClientSocket()
-					c.socket.Send(currBatch, len(currBatch))
+					errSock := c.socket.Send(currBatch, len(currBatch))
+					if errSock != nil{
+						return errSock
+					}
 					c.socket.CloseSocket()
 				}
 				break
@@ -110,10 +116,12 @@ func (c *Client) sendBetsAsBatch(sizePerBatch int) error {
 		currBatch = append(currBatch, bytesToSend...)
 		filesInCurrentBatch += 1
 		if filesInCurrentBatch == sizePerBatch {
-			fmt.Println("ID: ", idBatch)
-			fmt.Println("Length of current batch: ", len(currBatch))
+			log.Infof("Length of current batch: %v", len(currBatch))
 			c.createClientSocket()
-			c.socket.Send(currBatch, len(currBatch))
+			errSock := c.socket.Send(currBatch, len(currBatch))
+			if errSock != nil{
+				return errSock
+			}
 			c.socket.CloseSocket()
 			currBatch = bytesBatchIdentifier
 			filesInCurrentBatch = 0
@@ -125,9 +133,9 @@ func (c *Client) sendBetsAsBatch(sizePerBatch int) error {
 func (c *Client) sendEnd() error{
 	bytesToSend := []byte{byte('E')}
 	c.createClientSocket()
-	log.Infof("\n[CLIENT] Sending END...")
+	log.Infof("[CLIENT] Sending END...")
 	c.socket.Send(bytesToSend, len(bytesToSend))
-	log.Infof("Sent END Succesfully...")
+	log.Infof("[CLIENT] Sent END Succesfully...")
 	_, err := c.socket.Receive()
 	c.socket.CloseSocket()
 	if err != nil {
