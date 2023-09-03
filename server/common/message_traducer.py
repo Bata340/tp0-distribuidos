@@ -1,4 +1,4 @@
-from struct import unpack
+from struct import unpack, pack
 import logging
 
 SIZE_TYPE_OF_MESSAGE = 1
@@ -51,6 +51,10 @@ def traduce_bet_from_bytes_to_object(bytes_recvd):
     return betsArray
 
 
+def traduce_agency_id_from_end_msg(msg):
+    return {"agency_id": msg[0:].decode('utf-8')}
+
+
 TYPES_OF_MESSAGE = {
     "B": {
         "type": "BET",
@@ -58,7 +62,7 @@ TYPES_OF_MESSAGE = {
     },
     "E": {
         "type": "END_BETS",
-        "traducer": lambda _: None
+        "traducer": traduce_agency_id_from_end_msg 
     }
 }
 
@@ -76,8 +80,8 @@ def traduce_message(bytes_recvd):
     }
 
 
-def winner_to_bytes(dni, number):
-    # Packs winner as DNI and number in an 8 bytes message (Two ints)
-    # TODO: Usar la función de utils para generar el array y posteriormente empaquetar cada item como bytes.
-    # Para ejercicio 7.
-    pass
+def winner_to_bytes(dni):
+    '''
+    Packs winner as DNI and number in an 8 bytes message (Two ints)
+    '''
+    return pack("!i", int(dni))

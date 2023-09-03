@@ -39,3 +39,23 @@ func BetToBytes(nombre string, apellido string, documento int, nacimiento string
 	finalMessage = append(finalMessage, bytesNumero...)
 	return finalMessage, nil
 }
+
+
+func TraduceWinners(bytes []byte) (string, []int) {
+	typeMessage := string(bytes[0])
+	if typeMessage == "P"{
+		return "PENDING", []int{}
+	}else{
+		restOfBytes := bytes[1:];
+		lengthOfBytes := len(restOfBytes)
+		currOffset := 0
+		winners := []int{}
+		for currOffset < lengthOfBytes{
+			dni := int(binary.BigEndian.Uint32(restOfBytes[currOffset:currOffset+4]))
+			winners = append(winners, dni)
+			currOffset += 4
+		}
+		return "WINNERS", winners
+	}
+
+}
