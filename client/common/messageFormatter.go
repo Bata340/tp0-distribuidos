@@ -5,6 +5,11 @@ import (
 	"fmt"
 )
 
+type Ganador struct {
+	dni int
+	number int
+}
+
 const (
 	SIZE_NACIMIENTO = 10
 	SIZE_NUMERO = 4
@@ -38,4 +43,24 @@ func BetToBytes(nombre string, apellido string, documento int, nacimiento string
 	finalMessage = append(finalMessage, bytesNacimiento...)
 	finalMessage = append(finalMessage, bytesNumero...)
 	return finalMessage, nil
+}
+
+
+func TraduceWinners(bytes []byte) (string, []Ganador) {
+	typeMessage := string(bytes[0])
+	if typeMessage == "P"{
+		return "PENDING", []Ganador{}
+	}else{
+		restOfBytes := bytes[1:];
+		lengthOfBytes := len(restOfBytes)
+		currOffset := 0
+		winners := []Ganador{}
+		for currOffset < lengthOfBytes{
+			dni := int(binary.BigEndian.Uint32(restOfBytes[currOffset:currOffset+4]))
+			number := int(binary.BigEndian.Uint32(restOfBytes[currOffset+4:currOffset+8]))
+			winners = append(winners, Ganador{dni: dni, number: number})
+		}
+		return "WINNERS", winners
+	}
+
 }

@@ -53,7 +53,7 @@ func (c *Client) StartClientLoop() {
 	}
 	errEnd := c.sendEnd()
 	if errEnd != nil{
-		log.Errorf("Error al enviar el mensaje de END: %v", err)
+		log.Errorf("Error al enviar el mensaje de END: %v", errEnd)
 	}
 	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
 }
@@ -123,15 +123,33 @@ func (c *Client) sendBetsAsBatch(sizePerBatch int) error {
 }
 
 func (c *Client) sendEnd() error{
-	bytesToSend := []byte{byte('E')}
-	c.createClientSocket()
-	log.Infof("\n[CLIENT] Sending END...")
-	c.socket.Send(bytesToSend, len(bytesToSend))
-	log.Infof("Sent END Succesfully...")
-	_, err := c.socket.Receive()
-	c.socket.CloseSocket()
-	if err != nil {
-		return fmt.Errorf("Error sending END: %v", err)
+	has_result := false
+	// Sleep as exponential backoff
+	sleepInSeconds := 1
+	for !has_result {
+		bytesToSend := []byte{byte('E'), byte(c.config.ID[0])}
+		c.createClientSocket()
+		log.Infof("[CLIENT] Sending END...")
+		err := c.socket.Send(bytesToSend, len(bytesToSend))
+		log.Infof("[CLIENT] Sent END Succesfully...")
+		if err != nil {
+			return fmt.Errorf("Error sending END: %v", err)
+		}
+		winnersMSG, err := c.socket.Receive()
+		if err != nil && err != io.EOF {
+			return fmt.Errorf("Error recieving END response: %v", err)	
+		}
+		typeResponse, winners := TraduceWinners(winnersMSG)
+		if typeResponse == "WINNERS"{
+			log.Infof("Winners in this agency are: %v", winners)
+			has_result = true
+		}else{
+			log.Infof("[CLIENT] Still pending result... Sleeping for %v seconds", sleepInSeconds)
+			time.Sleep(time.Duration(sleepInSeconds) * time.Second)
+			sleepInSeconds = sleepInSeconds * 2
+		}
+		c.socket.CloseSocket()
 	}
+	
 	return nil
 }

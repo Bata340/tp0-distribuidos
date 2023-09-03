@@ -1,12 +1,15 @@
-from common.message_traducer import traduce_message
-from common.utils import store_bets, Bet
+from common.message_traducer import traduce_message, winner_to_bytes
+from common.utils import store_bets, load_bets, has_won
 import logging
+
+NUM_AGENCIES = 5
 
 class BetsHandler:
 
     def __init__(self):
         self.betsMade = []
         self.agenciesEnded = 0
+        self.agenciesIdEnded = []
 
 
     def handleMessasge(self, message):
@@ -19,23 +22,35 @@ class BetsHandler:
         elif traducedMessage["type"] == "END_BETS":
             return {
                 "type": "END_BETS",
-                "message": self.__handleEnd()
+                "message": self.__handleEnd(traducedMessage["message"]["agency_id"])
             }
         
 
-    def get_winners(self):
-        pass
+    def __get_winners(self, agency_id):
+        if self.agenciesEnded < NUM_AGENCIES:
+            return b"P"
+        winners = b"W"
+        for bet in load_bets():
+            logging.info("Reading bet:")
+            if has_won(bet) and bet.agency == agency_id:
+                winners += winner_to_bytes(bet.document, bet.number)
+        return winners
+        
 
 
     def __handleBatch(self, batch):
         store_bets(batch)
         for bet in batch:
             logging.info(f'action: apuesta_almacenada | result: success | dni: ${bet.document} | numero: ${bet.number}')
-        return bet
+        return None
     
 
-    def __handleEnd(self):
-        self.agenciesEnded += 1
-        return "END"
+    def __handleEnd(self, agency_id):
+        if not (agency_id in self.agenciesIdEnded):
+            self.agenciesEnded += 1
+            self.agenciesIdEnded.append(agency_id)
+            if self.agenciesEnded == NUM_AGENCIES:
+                logging.info("action: sorteo | result: success")
+        return self.__get_winners(agency_id)
 
     
