@@ -40,7 +40,7 @@ class BetsHandler:
     def __handleBatch(self, batch):
         store_bets(batch)
         for bet in batch:
-            logging.info(f'action: apuesta_almacenada | result: success | dni: ${bet.document} | numero: ${bet.number}')
+            logging.info(f'action: apuesta_almacenada | result: success | dni: {bet.document} | numero: {bet.number}')
         return None
     
 
