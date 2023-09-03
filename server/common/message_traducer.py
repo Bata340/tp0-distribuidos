@@ -80,8 +80,8 @@ def traduce_message(bytes_recvd):
     }
 
 
-def winner_to_bytes(dni, number):
+def winner_to_bytes(dni):
     '''
     Packs winner as DNI and number in an 8 bytes message (Two ints)
     '''
-    return pack("!ii", dni, number)
+    return pack("!i", int(dni))

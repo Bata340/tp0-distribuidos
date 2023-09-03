@@ -31,9 +31,8 @@ class BetsHandler:
             return b"P"
         winners = b"W"
         for bet in load_bets():
-            logging.info("Reading bet:")
-            if has_won(bet) and bet.agency == agency_id:
-                winners += winner_to_bytes(bet.document, bet.number)
+            if has_won(bet) and int(bet.agency) == int(agency_id):
+                winners += winner_to_bytes(bet.document)
         return winners
         
 

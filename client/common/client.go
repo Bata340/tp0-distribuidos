@@ -141,7 +141,8 @@ func (c *Client) sendEnd() error{
 		}
 		typeResponse, winners := TraduceWinners(winnersMSG)
 		if typeResponse == "WINNERS"{
-			log.Infof("Winners in this agency are: %v", winners)
+			log.Infof("[CLIENT] Winners in this agency are: %v", winners)
+			log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %v", len(winners))
 			has_result = true
 		}else{
 			log.Infof("[CLIENT] Still pending result... Sleeping for %v seconds", sleepInSeconds)
