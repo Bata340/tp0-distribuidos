@@ -132,10 +132,17 @@ func (c *Client) sendBetsAsBatch(sizePerBatch int) error {
 
 func (c *Client) sendEnd() error{
 	has_result := false
+	bytesToSend := []byte{byte('E'), byte(c.config.ID[0])}
 	// Sleep as exponential backoff
 	sleepInSeconds := 1
-	for !has_result {
-		bytesToSend := []byte{byte('E'), byte(c.config.ID[0])}
+	if c.end{
+		c.createClientSocket()
+		c.socket.Send(bytesToSend, len(bytesToSend))
+		log.Infof("[CLIENT] Sent END Succesfully...")
+		c.socket.CloseSocket()
+	}
+	for !has_result && !c.end {
+		
 		c.createClientSocket()
 		log.Infof("[CLIENT] Sending END...")
 		err := c.socket.Send(bytesToSend, len(bytesToSend))
