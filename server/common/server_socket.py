@@ -52,7 +52,6 @@ class ServerSocket:
 
     def shutdown(self):
         logging.info("[ServerSocket] Shutting down...")
-        self.should_end_loop = True
         # Close connection and send EOF to peers
         self._server_socket.shutdown(socket.SHUT_RDWR)
         # Deallocates socket

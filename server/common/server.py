@@ -49,5 +49,6 @@ class Server:
 
     def end_server(self):
         logging.info("[SERVER] Shutting down")
+        self.should_end_loop = True
         self.serverSocket.shutdown()
         logging.info("[SERVER] Shutted Down Gracefully")
