@@ -8,9 +8,6 @@ NUM_AGENCIES = 5
 class BetsHandler:
 
     def __init__(self):
-        self.betsMade = []
-        self.agenciesEnded = 0
-        self.agenciesIdEnded = []
         self.fileLock = Lock()
 
 
