@@ -12,13 +12,13 @@ services:
       - testing_net
     volumes:
       - ./server/config:/config:ro
-
-  client1:
-    container_name: client1
+{% for i in range(numClients) %}
+  client{{ i+1 }}:
+    container_name: client{{ i+1 }}
     image: client:latest
     entrypoint: /client
     environment:
-      - CLI_ID=1
+      - CLI_ID={{i+1}}
       - CLI_LOG_LEVEL=DEBUG
     networks:
       - testing_net
@@ -26,21 +26,7 @@ services:
       - server
     volumes:
       - ./client/config:/build/config:ro
-
-  client2:
-    container_name: client2
-    image: client:latest
-    entrypoint: /client
-    environment:
-      - CLI_ID=2
-      - CLI_LOG_LEVEL=DEBUG
-    networks:
-      - testing_net
-    depends_on:
-      - server
-    volumes:
-      - ./client/config:/build/config:ro
-
+{% endfor %}
 
   netcat-test:
     container_name: netcat-test
@@ -59,3 +45,4 @@ networks:
       driver: default
       config:
         - subnet: 172.25.125.0/24
+

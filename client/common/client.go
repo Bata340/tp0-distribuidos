@@ -21,6 +21,7 @@ type ClientConfig struct {
 type Client struct {
 	config ClientConfig
 	conn   net.Conn
+	end bool
 }
 
 // NewClient Initializes a new client receiving the configuration
@@ -65,6 +66,10 @@ loop:
 		default:
 		}
 
+		if c.end {
+			break;
+		}
+
 		// Create the connection the server in every loop iteration. Send an
 		c.createClientSocket()
 
@@ -96,4 +101,12 @@ loop:
 	}
 
 	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
+}
+
+
+func (c *Client) End() {
+	log.Infof("[CLIENT] Shutting down Socket...")
+	c.conn.Close()
+	c.end = true
+	log.Infof("[CLIENT] Socket closed, ending instance...")
 }

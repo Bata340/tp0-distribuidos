@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"strings"
 	"time"
-
+	"os"
+	"os/signal"
+	"syscall"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
@@ -40,7 +42,7 @@ func InitConfig() (*viper.Viper, error) {
 	// does not exists then ReadInConfig will fail but configuration
 	// can be loaded from the environment variables so we shouldn't
 	// return an error in that case
-	v.SetConfigFile("./config.yaml")
+	v.SetConfigFile("./config/config.yaml")
 	if err := v.ReadInConfig(); err != nil {
 		fmt.Printf("Configuration could not be read from config file. Using env variables instead")
 	}
@@ -87,6 +89,14 @@ func PrintConfig(v *viper.Viper) {
     )
 }
 
+func endOnSigTerm (client *common.Client, signals chan os.Signal) {
+	//Read from channel, won't execute except SIGTERM is thrown.
+	<-signals
+	log.Infof("Received SIGTERM. shutting down client...")
+	client.End()
+	log.Infof("Ending Main Instance... Graceful exit")
+}
+
 func main() {
 	v, err := InitConfig()
 	if err != nil {
@@ -108,5 +118,13 @@ func main() {
 	}
 
 	client := common.NewClient(clientConfig)
+
+	//Before starting client, handle sigterm with channel & signal notify
+	signals := make(chan os.Signal, 1)
+	defer close(signals)
+	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
+	//Make a goroutine to handle the signal of SIGTERM
+	go endOnSigTerm(client, signals)
+
 	client.StartClientLoop()
 }
