@@ -95,7 +95,6 @@ func endOnSigTerm (client *common.Client, signals chan os.Signal) {
 	log.Infof("Received SIGTERM. shutting down client...")
 	client.End()
 	log.Infof("Ending Main Instance... Graceful exit")
-	close(signals)
 }
 
 func main() {
@@ -122,10 +121,10 @@ func main() {
 
 	//Before starting client, handle sigterm with channel & signal notify
 	signals := make(chan os.Signal, 1)
+	defer close(signals)
 	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
 	//Make a goroutine to handle the signal of SIGTERM
 	go endOnSigTerm(client, signals)
 
 	client.StartClientLoop()
-	close(signals)
 }
