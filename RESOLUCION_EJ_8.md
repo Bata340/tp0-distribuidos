@@ -22,6 +22,8 @@ Esta cola de procesos se utiliza en el hilo "Joiner" que se explica mas adelante
 
 Cada proceso entonces recibe el mensaje del socket en específico, y lo handlea de la misma forma que se hacía en el ejercicio 7. El único comportamiento modificado como ya se mencionó es en el mensaje end, y por otra parte, el uso de la Queue "return_value" para ambos mensaje(Se ve en detalle en "Notificación de agencia finalizada" en la sección de Sincronización).
 
+*ACLARACIÓN: Reconozco que la presente implementación a gran escala puede tener problemas de memoria, ya que spawnear procesos por cada petición tomaría una gran utilización de recursos. Para ello se requeriría readaptar la apertura de una única conexión TCP cliente-servidor para realizar toda la comunicación manejada en un único proceso independiente para cada cliente. Sin embargo, dado que ya fue resuelto con un proceso por cada request de cada cliente, y que carezco de tiempo, lo dejaré implementado de dicha manera.*
+
 ## Sincronización
 
 Para la sincronización se desarrolló un mecanismo basado en colas, donde la comunicación surge de la siguiente forma:
